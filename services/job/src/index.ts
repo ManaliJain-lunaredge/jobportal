@@ -2,6 +2,7 @@ import express from "express"
 import dotenv from "dotenv"
 import { sql } from "./utils/db.js";
 import jobRoutes from "./routes/index.js"
+import { connectKafka } from "./producer.js";
 
 const app = express();
 dotenv.config();
@@ -10,7 +11,7 @@ app.use(express.json())
 app.use(express.urlencoded({ extended: true }));
 app.use("/api/job", jobRoutes)
 
-
+connectKafka();
 async function initDB() {
     try {
 await sql`
