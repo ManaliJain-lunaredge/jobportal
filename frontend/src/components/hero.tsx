@@ -9,7 +9,7 @@ const Hero = () => {
         <section className="relative overflow-hidden">
             {/* Decorative blurred shapes */}
             <div className="absolute -top-16 -left-16 w-80 h-80 rounded-full bg-gradient-to-tr from-blue-500 via-indigo-600 to-purple-600 opacity-20 blur-3xl pointer-events-none" />
-            <div className="absolute -bottom-24 -right-24 w-96 h-96 rounded-full bg-gradient-to-br from-rose-400 via-red-500 to-pink-500 opacity-15 blur-3xl pointer-events-none" />
+          
 
             <div className="max-w-7xl mx-auto px-6 py-20 lg:py-32 relative">
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-12 items-center">
@@ -54,7 +54,7 @@ const Hero = () => {
 
                     {/* Right: illustration */}
                     <div className="md:col-span-5 lg:col-span-6 flex justify-center md:justify-end">
-                        <div className="w-full max-w-xl dark:from-input/60 dark:to-input/30 border border-border rounded-2xl p-2">
+                        <div className="w-full  border border-border rounded-2xl p-2">
                             <div className="overflow-hidden rounded-lg">
                                 <Image src={hero} alt="Hero" width={720} height={420} className="w-full h-auto object-cover rounded-lg" />
                             </div>

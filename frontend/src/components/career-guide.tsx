@@ -2,7 +2,8 @@
 
 import React, { useState } from "react";
 import { Button } from "./ui/button";
-import { CarrierGuideResponse, utils_service } from "@/type";
+import { CarrierGuideResponse } from "@/type";
+import {utils_service} from "@/context/AppContext"
 import axios from "axios";
 import { 
   Dialog, 
@@ -26,6 +27,7 @@ import {
 } from "lucide-react";
 import { Label } from "./ui/label";
 import { Input } from "./ui/input";
+import toast from "react-hot-toast";
 
 export default function CareerGuide() {
   const [open, setOpen] = useState(false);
@@ -53,16 +55,17 @@ export default function CareerGuide() {
 
   const careerGuidance = async () => {
     if (skills.length === 0) {
-      alert('Please add at least one skill');
+      toast.error('Please add at least one skill');
       return;
     }
     setLoading(true);
     try {
       const { data } = await axios.post(`${utils_service}/api/utils/career`, { skills: skills });
       setResponse(data);
+      toast.success("Carrer Guidance Generated")
     } catch (err: any) {
       console.error(err);
-      alert(err?.response?.data?.message || "Something went wrong");
+      toast.error(err?.response?.data?.message || "Something went wrong");
     } finally {
       setLoading(false);
     }

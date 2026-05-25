@@ -118,11 +118,11 @@ res.json(jsonresponse)
 
 router.post("/resume-analyser",async(req,res)=>{
   try{
-const {pdfBase64}=req.body;
-if(!pdfBase64){
-   res.status(400).json({
-      message:"Pdf data is not present"
-    })
+const { pdfBase64 } = req.body || {};
+if (!pdfBase64) {
+  return res.status(400).json({
+    message: "Pdf data is not present",
+  });
 }
 const prompt = `
 You are an expert ATS (Applicant Tracking System) analyzer. Analyze the following resume
@@ -202,14 +202,16 @@ try{const rawtext=response.text?.replace(/```json/g,"").replace(/```/g,"").trim(
     throw new Error("AI did not return a valid text response")
   }
 
-  jsonresponse=JSON.parse(rawtext)
+    jsonresponse = JSON.parse(rawtext);
+  } catch (error) {
+    return res.status(500).json({
+      message: "Ai return that was not valid",
+      rawResponse: response.text,
+    });
+  }
 
-}catch(error){
-return res.status(500).json({
-  message:"Ai return that was not valid",
-  rawResponse:response.text
-})
-}
+  // send parsed AI response back to client
+  return res.json(jsonresponse);
   }catch(error:any){
      res.status(500).json({
       message:error.message
