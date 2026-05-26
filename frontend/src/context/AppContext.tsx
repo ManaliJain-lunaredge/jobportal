@@ -1,22 +1,61 @@
 "use client"
-import {Toaster} from "react-hot-toast"
+import axios from "axios"
+import toast, {Toaster} from "react-hot-toast"
 import { AppContextType, AppProviderProps, User } from "@/type"
-import React, { createContext, useContext, useState } from "react"
+import React, { createContext, useContext, useEffect, useState } from "react"
+import Cookies from "js-cookie"
 export const utils_service = "http://localhost:5001"
 
 export const AppContext = createContext<AppContextType | undefined>(undefined);
 export const auth_service="http://localhost:5000"
 export const user_service="http://localhost:5002"
 export const job_service="http://localhost:5003"
+
 export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isAuth, setIsAuth] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
   const [btnLoading, setBtnLoading] = useState<boolean>(false);
+const token=Cookies.get("token")
+
+async function fetchUser() {
+  try {
+    const { data } = await axios.get(
+      `${user_service}/api/user/me`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    setUser(data);
+    setIsAuth(true);
+  } catch (error) {
+    console.log("error fetching user ", error);
+    setIsAuth(false);
+  } finally {
+    setLoading(false);
+  }
+}
+
+ async function logOutUser() {
+  Cookies.remove("token");
+  setUser(null);
+  setIsAuth(false);
+  toast.success("Logged out successfully");
+}
+useEffect(()=>{
+  if(token){
+    fetchUser()
+  } else {
+    setLoading(false);
+  }
+},[token])
 
   return (
     <AppContext.Provider
-      value={{ user, loading, btnLoading, isAuth, setUser, setLoading, setIsAuth }}
+      value={{ user, loading, btnLoading, isAuth, setUser, setLoading, setIsAuth,logOutUser}}
     >
       {children}
       <Toaster/>

@@ -15,7 +15,7 @@ export const registerUser = TryCatch(async (req, res) => {
 
     const { name, email, password, role, phoneNumber, bio } = req.body;
 
-    if (!name || !email || !password || !role || !phoneNumber || !bio) {
+    if (!name || !email || !password || !role || !phoneNumber) {
         throw new ErrorHandler(400, "Please Fill all details")
     }
 
@@ -32,21 +32,39 @@ export const registerUser = TryCatch(async (req, res) => {
         registerUser = user
     }
     else if (role === "jobseeker") {
-        const file = req.file
+        // For jobseekers, bio is required
+        if (!bio) {
+            throw new ErrorHandler(400, "Please Fill all details")
+        }
+        const files = req.files as Record<string, any> | undefined;
+        const resumeFile = files?.resume?.[0];
+        const profilePicFile = files?.profile_pic?.[0];
 
-        if (!file) {
+        if (!resumeFile) {
             throw new ErrorHandler(400, "resume file is required")
         }
 
-        const fileBuffer = getBuffer(file)
-
+        const fileBuffer = getBuffer(resumeFile)
 
         if (!fileBuffer || !fileBuffer.content) {
             throw new ErrorHandler(500, "failed to generate buffer")
         }
+
         const { data } = await axios.post(`${process.env.UPLOAD_SERVICE}/api/utils/upload`, { buffer: fileBuffer.content })
 
-        const [user] = await sql` INSERT INTO users(name,email,password,phone_number,role,bio,resume,resume_public_id) VALUES (${name},${email},${hashPassword},${phoneNumber},${role},${bio},${data.url},${data.public_id}) RETURNING user_id,name,email,phone_number,role,bio,resume,created_at`;
+        let profilePicUrl: string | null = null;
+        let profilePicPublicId: string | null = null;
+
+        if (profilePicFile) {
+            const profilePicBuffer = getBuffer(profilePicFile)
+            if (profilePicBuffer && profilePicBuffer.content) {
+                const { data: picData } = await axios.post(`${process.env.UPLOAD_SERVICE}/api/utils/upload`, { buffer: profilePicBuffer.content })
+                profilePicUrl = picData.url
+                profilePicPublicId = picData.public_id
+            }
+        }
+
+        const [user] = await sql` INSERT INTO users(name,email,password,phone_number,role,bio,resume,resume_public_id,profile_pic,profile_pic_public_id) VALUES (${name},${email},${hashPassword},${phoneNumber},${role},${bio},${data.url},${data.public_id},${profilePicUrl},${profilePicPublicId}) RETURNING user_id,name,email,phone_number,role,bio,resume,profile_pic,created_at`;
         registerUser = user;
     }
 

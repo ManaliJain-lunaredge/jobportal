@@ -56,7 +56,7 @@ const Hero = () => {
                     <div className="md:col-span-5 lg:col-span-6 flex justify-center md:justify-end">
                         <div className="w-full  border border-border rounded-2xl p-2">
                             <div className="overflow-hidden rounded-lg">
-                                <Image src={hero} alt="Hero" width={720} height={420} className="w-full h-auto object-cover rounded-lg" />
+                                <Image src={hero} alt="Hero" width={720} height={420} loading="eager" className="w-full h-auto object-cover rounded-lg" />
                             </div>
                         </div>
                     </div>

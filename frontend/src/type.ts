@@ -82,8 +82,15 @@ export interface AppContextType {
 
     setLoading: React.Dispatch<React.SetStateAction<boolean>>;
     setIsAuth: React.Dispatch<React.SetStateAction<boolean>>
+    logOutUser:()=>Promise<void>
 }
 
 export interface AppProviderProps{
     children:ReactNode;
+}
+
+export interface AccountProps{
+  user:User;
+ isYourAccount:boolean;
+ 
 }

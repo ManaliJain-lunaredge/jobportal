@@ -6,15 +6,18 @@ import { Briefcase, Home, Info, LogOut, Menu, User, X } from 'lucide-react'
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover'
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar'
 import { ModeToggle } from './ui/mode-toggle'
+import { useAppData } from '@/context/AppContext'
 
 const Navbar = () => {
     const [isOpen, setisOpen] = useState(false)
+const {isAuth,user,setIsAuth,setUser,loading,logOutUser}=useAppData()
+
     const toggleMenu = () => {
         setisOpen(!isOpen)
     }
-    const isAuth = false;
+   
     const logeedOut = () => {
-
+        logOutUser()
     }
     return <nav className='z-50 sticky top-0 bg-background/80 border-b backdrop-blur-md shadow-sm'>
         <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'>
@@ -22,7 +25,7 @@ const Navbar = () => {
                 <div className='flex items-center'>
                     <Link href={'/'} className='flex items-center gap-1 group'>
                         <div className='text-2xl font-bold tracking-light'>
-                            <span className='bg-gradient-to-r from bg-blue-600 to bg-blue-800 bg-clip-text text-transparent '> Hire</span>
+                            <span className='bg-linear-to-r from bg-blue-600 to bg-blue-800 bg-clip-text text-transparent '> Hire</span>
                             <span className='text-red-500'> Hub</span> 
                         </div>
                     </Link>
@@ -43,14 +46,14 @@ const Navbar = () => {
                 <div className='hidden md:flex items-center gap-3 '>{isAuth ? (<Popover>
                     <PopoverTrigger asChild><button className='flex items-center gap-2 hover:opcaity-80 transition-opacity '><Avatar className='h-9 w-9 right-2 ring-offset-2 ring-offset-background ring-blue-500/20 cursor-pointer hover:ring-blue-500/40 transition-all'
                     >
-                        {/* <AvatarImage src={} alt=""/> */}
-                        <AvatarFallback className='bg-blue-100 dark:bg-blue-900 text-blue-600 ' >M</AvatarFallback>
+                        <AvatarImage src={user?user.profile_pic as string:""} alt={user?.name}/>
+                        <AvatarFallback className='bg-blue-100 dark:bg-blue-900 text-blue-600 ' >{user?.name?.charAt(0).toUpperCase()||"U"}</AvatarFallback>
                     </Avatar></button></PopoverTrigger>
 
                     <PopoverContent className='W-56 P-2 ' align="end"  >
                         <div className='px-3 py-2 mb-2 border-b '>
-                            <p className='text-sm font-semibold'>Manali</p>
-                            <p className='text-xs opacity-60 truncate'>manalijain99688@gmail.com</p>
+                            <p className='text-sm font-semibold'>{user?.name}</p>
+                            <p className='text-xs opacity-60 truncate'>{user?.email}</p>
                         </div>
                         <Link href={'/account'}> <Button className='w-full justify-start gap-2' variant={"ghost"}><User size={16}></User>My Profile</Button></Link>
                         <Button className='w-full justify-start gap-2 mt-1' variant={"ghost"} onClick={logeedOut}><LogOut size={16}></LogOut>Logout</Button>
@@ -90,7 +93,8 @@ const Navbar = () => {
                         <Info size={18} />About
                     </Button>
                 </Link>
-                {
+               {
+                loading?"":<> {
                     isAuth ? <>
                     
                       <Button variant={"ghost"} className='w-full justify-start gap-3 h-11 '>
@@ -108,7 +112,8 @@ const Navbar = () => {
                       <Button  className='w-full justify-start gap-3 h-11 mt-2'>
                         <User size={18} />Sign In
                     </Button></Link>)
-                }
+                }</>
+               }
             </div>
         </div>
 

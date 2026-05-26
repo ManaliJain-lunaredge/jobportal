@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
+import Loading from '@/components/loading'
 
 const LoginPage = () => {
     const [email, setEmail] = useState("")
@@ -17,6 +18,7 @@ const LoginPage = () => {
     const [btnLoading, setBtnLoading] = useState(false)
     const { isAuth, setUser, loading, setIsAuth } = useAppData()
     if (isAuth) return redirect("/")
+        if(loading) return <Loading/>
     const submitHandler = async (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         setBtnLoading(true)
@@ -35,7 +37,7 @@ const LoginPage = () => {
                 secure: false,
                 path: "/"
             })
-            setUser(data.user)
+            setUser(data.userObject)
             setIsAuth(true)
         }
         catch (error: any) {
