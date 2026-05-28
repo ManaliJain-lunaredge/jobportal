@@ -38,12 +38,14 @@ export const updateProfile = TryCatch(async (req: AuthenticatedRequest, res, nex
 
     // guard against missing or non-parsed body (e.g., client sent multipart/form-data without multer)
     const body = req.body || {};
-    const { name, phone_numer, bio } = body as { name?: string; phone_numer?: number; bio?: string };
+    const { name, phone_numer, bio, email } = body as { name?: string; phone_numer?: number; bio?: string; email?: string };
 
     const newName = name || user.name;
     const newPhoneNumber = phone_numer || user.phone_number;
     const newbio = bio || user.bio;
-    const [updatedUser] = await sql`UPDATE users SET name=${newName},phone_number=${newPhoneNumber},bio=${newbio} WHERE user_id=${user.user_id} RETURNING user_id,name,phone_number,bio  `
+    const newEmail = email || user.email;
+
+    const [updatedUser] = await sql`UPDATE users SET name=${newName},phone_number=${newPhoneNumber},bio=${newbio},email=${newEmail} WHERE user_id=${user.user_id} RETURNING user_id,name,phone_number,bio,email`
     res.json({
         message: "profile updated ",
         updatedUser

@@ -9,8 +9,11 @@ import { startSendMailConsumer } from "./consumer.js";
 
 
 const app =express();
-app.use(cors());
 dotenv.config();
+const frontendOrigin = process.env.FRONTEND_URL || process.env.Frontend_Url || "http://localhost:3000"
+// Configure CORS globally. express's CORS middleware handles preflight OPTIONS requests,
+// so an explicit app.options(...) call is unnecessary and can break older router/path-to-regexp versions.
+app.use(cors({ origin: frontendOrigin, credentials: true, allowedHeaders: ['Content-Type','Authorization'], methods: ['GET','POST','PUT','DELETE','OPTIONS'] }));
 
 
 startSendMailConsumer();
@@ -27,7 +30,8 @@ cloudinary.config({
 app.use(express.json({limit:'100mb'}))
 app.use(express.urlencoded({limit:'100mb',extended:true}))
 app.use("/api/utils",routes)
-app.listen(process.env.PORT,()=>{
-    console.log("UTILS SERVICE RUNNING",process.env.PORT);
+const port = process.env.PORT || 5001
+app.listen(port,()=>{
+  console.log("UTILS SERVICE RUNNING",port);
     
 })

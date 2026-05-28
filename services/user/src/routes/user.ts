@@ -7,7 +7,7 @@ const router=express.Router();
 
 // place specific/static routes before the dynamic '/:userId' route
 router.get("/me", isAuth, myProfile)
-router.post("/profile-pic", isAuth, uploadFile, updateProfilePic)
+router.put("/update/profile-pic", isAuth, uploadFile, updateProfilePic)
 // fixed route path (was missing leading slash)
 router.post("/update/resume", isAuth, uploadFile, updateProfileResume)
 
