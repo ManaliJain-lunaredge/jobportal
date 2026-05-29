@@ -10,6 +10,7 @@ import { TryCatch } from "../utils/TryCatch.js"
 import axios from "axios"
 import bcrypt from "bcrypt"
 import jwt from "jsonwebtoken"
+import crypto from "crypto"
 
 export const registerUser = TryCatch(async (req, res) => {
 
@@ -68,15 +69,26 @@ export const registerUser = TryCatch(async (req, res) => {
         registerUser = user;
     }
 
-    const token = jwt.sign({ id: registerUser?.user_id }, process.env.JWT_SEC as string, {
-        expiresIn: "15d"
-    })
+    // create short-lived access token and long-lived refresh token
+    const accessToken = jwt.sign({ id: registerUser?.user_id }, process.env.JWT_SEC as string, { expiresIn: "15m" });
+    const refreshToken = jwt.sign({ id: registerUser?.user_id }, process.env.JWT_REFRESH_SEC as string, { expiresIn: "7d" });
+
+    // store refresh token in redis for revocation/validation
+    await redisClient.set(`refresh:${registerUser?.user_id}`, refreshToken, { EX: 7 * 24 * 3600 });
+
+    // set HttpOnly refresh cookie
+    res.cookie("refresh_token", refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        maxAge: 7 * 24 * 3600 * 1000,
+    });
 
     res.json({
         message: "user registerd",
         registerUser,
-        token
-    })
+        accessToken,
+    });
 })
 
 
@@ -106,17 +118,68 @@ export const loginUser = TryCatch(async (req, res, next) => {
     userObject.skills = userObject.skills || [];
     delete userObject.password;
 
-    const token = jwt.sign({ id: userObject?.user_id }, process.env.JWT_SEC as string, {
-        expiresIn: "15d"
-    })
+    // create short-lived access token and long-lived refresh token
+    const accessToken = jwt.sign({ id: userObject?.user_id }, process.env.JWT_SEC as string, { expiresIn: "15m" });
+    const refreshToken = jwt.sign({ id: userObject?.user_id }, process.env.JWT_REFRESH_SEC as string, { expiresIn: "7d" });
+
+    // store refresh token in redis
+    await redisClient.set(`refresh:${userObject?.user_id}`, refreshToken, { EX: 7 * 24 * 3600 });
+
+    // set HttpOnly cookie
+    res.cookie("refresh_token", refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        maxAge: 7 * 24 * 3600 * 1000,
+    });
 
     res.json({
         message: "user LoggiedIn",
         userObject,
-        token
-    })
+        accessToken,
+    });
 
 })
+
+export const refreshAccessToken = TryCatch(async (req, res) => {
+    const token = req.cookies?.refresh_token;
+    if (!token) {
+        throw new ErrorHandler(401, "Refresh token missing");
+    }
+
+    let decoded: any;
+    try {
+        decoded = jwt.verify(token, process.env.JWT_REFRESH_SEC as string) as any;
+    } catch (error: any) {
+        throw new ErrorHandler(401, "Invalid refresh token");
+    }
+
+    const userId = decoded.id;
+    const stored = await redisClient.get(`refresh:${userId}`);
+    if (!stored || stored !== token) {
+        throw new ErrorHandler(401, "Refresh token revoked or invalid");
+    }
+
+    const accessToken = jwt.sign({ id: userId }, process.env.JWT_SEC as string, { expiresIn: "15m" });
+    res.json({ accessToken });
+});
+
+export const logoutUser = TryCatch(async (req, res) => {
+    const token = req.cookies?.refresh_token;
+    if (token) {
+        try {
+            const decoded = jwt.verify(token, process.env.JWT_REFRESH_SEC as string) as any;
+            const userId = decoded?.id;
+            if (userId) {
+                await redisClient.del(`refresh:${userId}`);
+            }
+        } catch (error) {
+            // ignore verification errors during logout
+        }
+    }
+    res.clearCookie("refresh_token");
+    res.json({ message: "Logged out" });
+});
 
 
 export const forgotPassword = TryCatch(async (req, res, next) => {

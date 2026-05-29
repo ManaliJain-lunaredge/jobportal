@@ -3,7 +3,6 @@ import axios from "axios"
 import toast, { Toaster } from "react-hot-toast"
 import { AppContextType, AppProviderProps, User } from "@/type"
 import React, { createContext, useContext, useEffect, useState } from "react"
-import Cookies from "js-cookie"
 export const utils_service = "http://localhost:5001"
 
 export const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -16,19 +15,24 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const [isAuth, setIsAuth] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
   const [btnLoading, setBtnLoading] = useState<boolean>(false);
-  const token = Cookies.get("token")
+  const [accessToken, setAccessToken] = useState<string | null>(null);
 
-  async function fetchUser() {
+  // helper: try to refresh access token using HttpOnly refresh cookie
+  async function tryRefreshAccessToken() {
     try {
-      const { data } = await axios.get(
-        `${user_service}/api/user/me`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const { data } = await axios.post(`${auth_service}/api/auth/refresh`, {}, { withCredentials: true });
+      setAccessToken(data.accessToken);
+      return data.accessToken;
+    } catch (error) {
+      return null;
+    }
+  }
 
+  async function fetchUserWithToken(token: string) {
+    try {
+      const { data } = await axios.get(`${user_service}/api/user/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       setUser(data);
       setIsAuth(true);
     } catch (error) {
@@ -39,24 +43,25 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     }
   }
   async function updateProfilePic(formData: any) {
-
-    setLoading(true)
+    setLoading(true);
     try {
+      let token = accessToken;
+      if (!token) token = await tryRefreshAccessToken();
+      if (!token) throw new Error("Not authenticated");
+
       const { data } = await axios.put(`${user_service}/api/user/update/profile-pic`, formData, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "multipart/form-data",
-        }
-      })
+        },
+      });
 
-      toast.success("updated successfully")
-      fetchUser()
-    }
-    catch (error: any) {
-      toast.error(error.response.data.message)
-    }
-    finally {
-      setLoading(false)
+      toast.success("updated successfully");
+      await fetchUserWithToken(token);
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || error.message || "Failed to update");
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -65,19 +70,16 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     console.log("my data", formData);
 
     try {
-      await axios.put(
-        `${user_service}/api/user/update/resume`,
-        formData,
-        {
-         headers: {
-  Authorization: `Bearer ${token}`,
-  "Content-Type": "multipart/form-data",
-},
-        }
-      );
+      let token = accessToken;
+      if (!token) token = await tryRefreshAccessToken();
+      if (!token) throw new Error("Not authenticated");
+
+      await axios.put(`${user_service}/api/user/update/resume`, formData, {
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "multipart/form-data" },
+      });
 
       toast.success("Updated successfully");
-      fetchUser();
+      await fetchUserWithToken(token);
     } catch (error: any) {
       toast.error(error.response?.data?.message || "Something went wrong");
     } finally {
@@ -85,9 +87,15 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     }
   }
   async function logOutUser() {
-    Cookies.remove("token");
+    try {
+      await axios.post(`${auth_service}/api/auth/logout`, {}, { withCredentials: true });
+    } catch (error) {
+      // ignore errors on logout
+    }
+    setAccessToken(null);
     setUser(null);
     setIsAuth(false);
+    setLoading(false);
     toast.success("Logged out successfully");
   }
 
@@ -95,10 +103,12 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     if (!user) return;
     setLoading(true);
     try {
+      let token = accessToken;
+      if (!token) token = await tryRefreshAccessToken();
+      if (!token) throw new Error("Not authenticated");
+
       const { data } = await axios.post(`${user_service}/api/user/update/${user.user_id}`, payload, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
 
       toast.success(data.message || "Profile updated");
@@ -107,7 +117,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         setUser((prev) => ({ ...(prev as any), ...data.updatedUser }));
       } else {
         // fallback: re-fetch full user
-        await fetchUser();
+        await fetchUserWithToken(token as string);
       }
     } catch (error: any) {
       toast.error(error?.response?.data?.message || "Failed to update profile");
@@ -116,16 +126,21 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     }
   }
   useEffect(() => {
-    if (token) {
-      fetchUser()
-    } else {
-      setLoading(false);
-    }
-  }, [token])
+    // on mount try refresh to obtain access token and fetch user
+    (async () => {
+      const token = await tryRefreshAccessToken();
+      if (token) {
+        await fetchUserWithToken(token);
+      } else {
+        setLoading(false);
+        setIsAuth(false);
+      }
+    })();
+  }, []);
 
   return (
     <AppContext.Provider
-      value={{ user, loading, btnLoading, isAuth, setUser, setLoading, setIsAuth, logOutUser, updateProfilePic, updateResume, updateProfile }}
+      value={{ user, loading, btnLoading, isAuth, accessToken, setUser, setLoading, setIsAuth, setAccessToken, logOutUser, updateProfilePic, updateResume, updateProfile }}
     >
       {children}
       <Toaster />

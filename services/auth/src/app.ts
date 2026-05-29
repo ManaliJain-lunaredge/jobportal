@@ -1,5 +1,6 @@
 import express from "express";
 import cors from "cors";
+import cookieParser from "cookie-parser";
 import authRoutes from "./routes/auth.js";
 import { connectKafka } from "./producer.js";
 
@@ -20,6 +21,8 @@ app.use((req, res, next) => {
 });
 
 app.use(express.json());
+// parse cookies for refresh token handling
+app.use(cookieParser());
 app.use("/api/auth", authRoutes);
 
 connectKafka();

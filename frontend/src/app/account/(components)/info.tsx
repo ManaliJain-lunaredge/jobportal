@@ -190,15 +190,7 @@ const Info: React.FC<AccountProps> = ({ user, isYourAccount }) => {
                           <Label>Phone</Label>
                           <Input value={phoneNumber ?? String(user.phone_number)} onChange={(e) => setPhoneNumber(e.target.value)} />
                         </div>
-                        <div>
-                          <Label>About</Label>
-                          <textarea
-                            className="w-full rounded-lg border px-2.5 py-1 text-base"
-                            rows={4}
-                              value={bio ?? (user.bio || "")}
-                              onChange={(e) => setBio(e.target.value)}
-                          />
-                        </div>
+                       
                       </div>
 
                       <DialogFooter>

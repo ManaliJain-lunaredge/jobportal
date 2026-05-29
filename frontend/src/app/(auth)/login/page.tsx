@@ -5,7 +5,6 @@ import axios from 'axios'
 import { redirect } from 'next/navigation'
 import React, { FormEvent, useState } from 'react'
 import toast from 'react-hot-toast'
-import Cookies from "js-cookie"
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import Link from 'next/link'
@@ -16,7 +15,7 @@ const LoginPage = () => {
     const [email, setEmail] = useState("")
     const [password, setPassword] = useState("")
     const [btnLoading, setBtnLoading] = useState(false)
-    const { isAuth, setUser, loading, setIsAuth } = useAppData()
+    const { isAuth, setUser, loading, setIsAuth, setAccessToken } = useAppData()
     if (isAuth) return redirect("/")
         if(loading) return <Loading/>
     const submitHandler = async (e: FormEvent<HTMLFormElement>) => {
@@ -30,13 +29,10 @@ const LoginPage = () => {
         }
 
         try {
-            const { data } = await axios.post(`${auth_service}/api/auth/login`, { email, password });
+            const { data } = await axios.post(`${auth_service}/api/auth/login`, { email, password }, { withCredentials: true });
             toast.success(data.message)
-            Cookies.set("token", data.token, {
-                expires: 15,
-                secure: false,
-                path: "/"
-            })
+            // store access token in memory; refresh token is set as HttpOnly cookie by server
+            setAccessToken && setAccessToken(data.accessToken)
             setUser(data.userObject)
             setIsAuth(true)
         }

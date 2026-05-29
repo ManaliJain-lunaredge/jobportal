@@ -4,7 +4,6 @@ import axios from "axios";
 import { redirect } from "next/navigation";
 import React, { FormEvent, useState } from "react";
 import toast from "react-hot-toast";
-import Cookies from "js-cookie";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
@@ -20,7 +19,7 @@ const RegisterPage = () => {
   const [resume, setResume] = useState<File | null>(null);
 
   const [btnLoading, setBtnLoading] = useState(false);
-  const { isAuth, setUser, setIsAuth, loading } = useAppData();
+  const { isAuth, setUser, setIsAuth, loading, setAccessToken } = useAppData();
   if (loading) return <Loading />;
   if (isAuth) return redirect("/");
 
@@ -55,16 +54,10 @@ const RegisterPage = () => {
         formData.append("resume", resume!);
       }
 
-      const { data } = await axios.post(
-        `${auth_service}/api/auth/register`,
-        formData,
-      );
+      const { data } = await axios.post(`${auth_service}/api/auth/register`, formData, { withCredentials: true });
       toast.success(data.message);
-      Cookies.set("token", data.token, {
-        expires: 15,
-        secure: false,
-        path: "/",
-      });
+      // server sets HttpOnly refresh cookie; store access token in memory
+      setAccessToken && setAccessToken(data.accessToken);
       setUser(data.registerUser);
       setIsAuth(true);
     } catch (error: any) {
