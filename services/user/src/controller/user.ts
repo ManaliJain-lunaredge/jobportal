@@ -38,10 +38,10 @@ export const updateProfile = TryCatch(async (req: AuthenticatedRequest, res, nex
 
     // guard against missing or non-parsed body (e.g., client sent multipart/form-data without multer)
     const body = req.body || {};
-    const { name, phone_numer, bio, email } = body as { name?: string; phone_numer?: number; bio?: string; email?: string };
+    const { name, phone_number, bio, email } = body as { name?: string; phone_number?: number; bio?: string; email?: string };
 
     const newName = name || user.name;
-    const newPhoneNumber = phone_numer || user.phone_number;
+    const newPhoneNumber = phone_number || user.phone_number;
     const newbio = bio || user.bio;
     const newEmail = email || user.email;
 

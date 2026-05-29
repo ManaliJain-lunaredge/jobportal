@@ -9,7 +9,7 @@ const router=express.Router();
 router.get("/me", isAuth, myProfile)
 router.put("/update/profile-pic", isAuth, uploadFile, updateProfilePic)
 // fixed route path (was missing leading slash)
-router.post("/update/resume", isAuth, uploadFile, updateProfileResume)
+router.put("/update/resume", isAuth, uploadFile, updateProfileResume)
 
 router.post("/update/:userId", isAuth, updateProfile)
 

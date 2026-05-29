@@ -22,6 +22,8 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { useAppData } from "@/context/AppContext";
 import toast from "react-hot-toast";
+import axios from "axios";
+import { utils_service } from "@/context/AppContext";
 
 const Info: React.FC<AccountProps> = ({ user, isYourAccount }) => {
   const [btnLoading, setBtnLoading] = useState(false);
@@ -66,18 +68,48 @@ const Info: React.FC<AccountProps> = ({ user, isYourAccount }) => {
   const handleResumeClick = () => {
     resumeRef.current?.click()
   }
-  const changeResume = (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (file.type !== "application/pdf") {
-        alert("please upload pdf file")
-        return;
-      }
-      const formData = new FormData();
-      formData.append("file", file);
-      updateResume(formData)
-    }
+ const changeResume = async (e: ChangeEvent<HTMLInputElement>) => {
+  const file = e.target.files?.[0];
+
+  if (!file) return;
+
+  if (file.type !== "application/pdf") {
+    alert("Please upload PDF file");
+    return;
   }
+
+  const reader = new FileReader();
+
+  reader.readAsDataURL(file);
+
+  reader.onload = async () => {
+    try {
+      const base64 = reader.result;
+
+      console.log(base64); // should start with data:application/pdf;base64,
+
+      const { data } = await axios.post(
+        `${utils_service}/upload`,
+        {
+          buffer: base64,
+        }
+      );
+
+      console.log(data);
+
+      // save URL in your backend/profile
+      await updateResume({
+        resume: data.url,
+        public_id: data.public_id,
+      });
+
+      toast.success("Resume uploaded successfully");
+    } catch (error) {
+      console.log(error);
+      toast.error("Upload failed");
+    }
+  };
+};
   return (
     <div className="max-w-5xl mx-auto px-4 py-8">
       <Card className="overflow-hidden shadow-lg border-2">
@@ -196,7 +228,7 @@ const Info: React.FC<AccountProps> = ({ user, isYourAccount }) => {
                               }
 
                               try {
-                                await updateProfile({ name, phone_numer: Number(normalized) || undefined, bio, email });
+                                await updateProfile({ name, phone_number: Number(normalized) || undefined, bio, email });
                                 // update local controlled inputs to normalized value so UI shows formatted number
                                 setPhoneNumber(normalized);
                               } catch (err) {

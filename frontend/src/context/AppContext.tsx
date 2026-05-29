@@ -60,25 +60,28 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     }
   }
 
-   async function updateResume(formData: any) {
+  async function updateResume(formData: FormData) {
+    setLoading(true);
+    console.log("my data", formData);
 
-    setLoading(true)
     try {
-      const { data } = await axios.put(`${user_service}/api/user/update/resume`, formData, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "multipart/form-data",
+      await axios.put(
+        `${user_service}/api/user/update/resume`,
+        formData,
+        {
+         headers: {
+  Authorization: `Bearer ${token}`,
+  "Content-Type": "multipart/form-data",
+},
         }
-      })
+      );
 
-      toast.success("updated successfully")
-      fetchUser()
-    }
-    catch (error: any) {
-      toast.error(error.response.data.message)
-    }
-    finally {
-      setLoading(false)
+      toast.success("Updated successfully");
+      fetchUser();
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || "Something went wrong");
+    } finally {
+      setLoading(false);
     }
   }
   async function logOutUser() {
@@ -88,7 +91,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     toast.success("Logged out successfully");
   }
 
-  async function updateProfile(payload: { name?: string; email?: string; phone_numer?: string | number; bio?: string }) {
+  async function updateProfile(payload: { name?: string; email?: string; phone_number?: string | number; bio?: string }) {
     if (!user) return;
     setLoading(true);
     try {

@@ -5,33 +5,36 @@ const router = express.Router();
 
 
 router.post("/upload", async (req, res) => {
-    try {
-        const { buffer, public_id } = req.body || {};
+  try {
+    const { buffer, public_id } = req.body || {};
 
-        if (!buffer) {
-            return res.status(400).json({ message: 'Missing `buffer` in request body' });
-        }
-
-        if (public_id) {
-            await cloudinary.v2.uploader.destroy(public_id)
-        }
-
-        const cloud=await cloudinary.v2.uploader.upload(buffer)
-      res.json({
-        url:cloud.secure_url,
-        public_id:cloud.public_id
+    if (!buffer) {
+      return res.status(400).json({
+        message: "Missing `buffer` in request body",
       });
-
-
-    
     }
-    
-      catch(error:any){
-        res.status(500).json({
-            message:error.message
-        })
-      }
-})
+
+    if (public_id) {
+      await cloudinary.v2.uploader.destroy(public_id, {
+        resource_type: "image",
+      });
+    }
+
+    const cloud = await cloudinary.v2.uploader.upload(buffer, {
+      resource_type: "auto",
+      folder: "resumes",
+    });
+
+    res.json({
+      url: cloud.secure_url,
+      public_id: cloud.public_id,
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      message: error.message,
+    });
+  }
+});
 
 import {GoogleGenAI} from "@google/genai";
 import dotenv from "dotenv"
