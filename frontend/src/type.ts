@@ -66,10 +66,59 @@ export interface User {
     resume_public_id: string | null,
     profile_pic: string | null,
     profile_pic_public_id: string | null,
+    // optional company metadata supplied by job service for convenience
+    company_name?: string;
+    company_logo?: string;
+    company_website?: string;
     skills: string[],
     subscription: string | null
 
 
+}
+
+export interface Company {
+    company_id: number;
+    name: string;
+    description: string;
+    website: string;
+    logo: string;
+    logo_public_id: string;
+    recruiter_id: number;
+    created_at: string;
+    jobs?: Job[];
+}
+
+export interface Job {
+    job_id: number;
+    title: string;
+    description: string;
+    salary: number | string;
+    location: string | null;
+    job_type: "Full-time" | "Part-time" | "Contract" | "Internship";
+    role: string;
+    work_location: "On-site" | "Remote" | "Hybrid";
+    company_id: number;
+    posted_by_recruiter_id: number;
+    openings: number;
+    is_active: boolean;
+    // optional company metadata supplied by job service
+    company_name?: string;
+    company_logo?: string;
+    company_website?: string;
+    created_at?: string;
+}
+
+export interface JobPayload {
+    title: string;
+    description: string;
+    salary: number | string;
+    location: string;
+    role: string;
+    job_type: Job["job_type"];
+    work_location: Job["work_location"];
+    company_id: number;
+    openings: number;
+    is_active?: boolean;
 }
 
 export interface AppContextType {
@@ -78,6 +127,7 @@ export interface AppContextType {
     btnLoading: boolean;
     isAuth: boolean;
     accessToken?: string | null;
+    companies: Company[];
 
     setUser: React.Dispatch<React.SetStateAction<User | null>>;
     setAccessToken?: React.Dispatch<React.SetStateAction<string | null>>;
@@ -88,6 +138,11 @@ export interface AppContextType {
     updateProfilePic:(formData:any)=>Promise<void>
     updateResume:(formData:any)=>Promise<void>
     updateProfile:(payload:{name?:string,email?:string,phone_number?:string|number,bio?:string})=>Promise<void>
+    addSkill:(skillName:string)=>Promise<void>
+    deleteSkill:(skillName:string)=>Promise<void>
+    fetchCompanies:()=>Promise<void>
+    createCompany:(formData:FormData)=>Promise<void>
+    deleteCompany:(companyId:number)=>Promise<void>
 }
 
 export interface AppProviderProps{

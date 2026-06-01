@@ -3,14 +3,27 @@ import dotenv from "dotenv"
 import { sql } from "./utils/db.js";
 import jobRoutes from "./routes/index.js"
 import { connectKafka } from "./producer.js";
-
+import cors from "cors"
 const app = express();
 dotenv.config();
+
+const frontendOrigin = process.env.FRONTEND_URL || process.env.Frontend_Url || "http://localhost:3000";
+// Echo the requesting Origin back in Access-Control-Allow-Origin to avoid mismatches
+app.use(cors({ origin: true, credentials: true, allowedHeaders: ['Content-Type','Authorization'], methods: ['GET','POST','PUT','DELETE','OPTIONS'] }));
+
+app.use((req, res, next) => {
+  const origin = req.headers.origin || frontendOrigin;
+  res.header('Access-Control-Allow-Origin', origin as string);
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
+  if (req.method === 'OPTIONS') return res.sendStatus(200);
+  next();
+});
 
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }));
 app.use("/api/job", jobRoutes)
-
 connectKafka();
 async function initDB() {
     try {
@@ -86,11 +99,16 @@ CREATE TABLE IF NOT EXISTS applications(
         process.exit(1)
     }
 }
-initDB().then(() => {
-    app.listen(process.env.PORT, () => {
-        console.log("JOB SERVICE RUNNING ", process.env.PORT);
+// Start server regardless of DB init result to avoid complete outage while allowing
+// diagnostics and partial functionality. Init DB will run in background and log errors.
+const port = process.env.PORT || 5003;
+app.listen(port, () => {
+  console.log("JOB SERVICE RUNNING ", port);
+});
 
-    })
+initDB().then(() => {
+  console.log('DB init completed');
 }).catch((error) => {
-    console.log("eerror  ", error);
-})
+  console.error('eerror while creating table', error);
+  // do not exit here - keep server running so frontend can receive network responses
+});

@@ -27,7 +27,7 @@ const UserAccount = () => {
           const { data } = await axios.post(`${auth_service}/api/auth/refresh`, {}, { withCredentials: true });
           token = data.accessToken;
           // use optional chaining to safely call the updater if provided
-          setAccessToken?.(token);
+          if (setAccessToken) setAccessToken(token ?? null);
         } catch (e) {
           console.log("No access token available", e);
         }

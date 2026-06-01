@@ -184,14 +184,22 @@ WHERE job_id = ${req.params.jobId} RETURNING *;`
 })
 
 
-export const getAllCompany = TryCatch(async (req: AuthenticatedRequest, res, next) => {
-  const companies = await sql`SELECT * FROM companies WHERE recruiter_id =${req.user?.user_id}`
-  res.json({
-    companies
-  })
+export const getAllCompany = TryCatch(
+  async (req: AuthenticatedRequest, res) => {
 
+    console.log("USER:", req.user);
 
-})
+    const companies = await sql`
+      SELECT *
+      FROM companies
+      WHERE recruiter_id = ${req.user?.user_id}
+    `;
+
+    console.log("COMPANIES:", companies);
+
+    res.json({ companies });
+  }
+);
 
 
 
@@ -245,8 +253,18 @@ export const getAllActiveJob = TryCatch(async (req, res) => {
 
 
 export const getSingleJob = TryCatch(async (req, res) => {
-  const [job] = await sql`SELECT * FROM jobs WHERE job_id =${req.params.id}`;
-  res.json(job)
+  const [job] = await sql`
+    SELECT j.*, c.name AS company_name, c.logo AS company_logo, c.company_id AS company_id, c.website AS company_website
+    FROM jobs j
+    JOIN companies c ON j.company_id = c.company_id
+    WHERE j.job_id = ${req.params.id}
+  `;
+
+  if (!job) {
+    throw new ErrorHandler(404, "Job not found");
+  }
+
+  res.json(job);
 })
 
 

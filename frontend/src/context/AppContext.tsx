@@ -16,6 +16,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const [loading, setLoading] = useState<boolean>(true);
   const [btnLoading, setBtnLoading] = useState<boolean>(false);
   const [accessToken, setAccessToken] = useState<string | null>(null);
+  const [companies, setCompanies] = useState<any[]>([]);
 
   // helper: try to refresh access token using HttpOnly refresh cookie
   async function tryRefreshAccessToken() {
@@ -35,6 +36,14 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       });
       setUser(data);
       setIsAuth(true);
+      // if recruiter, fetch their companies using the same token
+      try {
+        if (data?.role === "recruiter") {
+          await fetchCompanies(token);
+        }
+      } catch (err) {
+        console.error("failed to fetch companies after user fetch", err);
+      }
     } catch (error) {
       console.log("error fetching user ", error);
       setIsAuth(false);
@@ -125,12 +134,149 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       setLoading(false);
     }
   }
+  async function addSkill(skillName: string) {
+    if (!user) return;
+    setLoading(true);
+    try {
+      let token = accessToken;
+      if (!token) token = await tryRefreshAccessToken();
+      if (!token) throw new Error("Not authenticated");
+
+      const { data } = await axios.post(`${user_service}/api/user/skill/add`, { skillName }, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      toast.success(data.message || "Skill added");
+      // optimistic update: append skill to user.skills
+      setUser((prev) => prev ? ({ ...(prev as any), skills: [...(prev.skills || []), skillName] }) : prev);
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || "Failed to add skill");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function fetchCompanies(passedToken?: string) {
+    // if token provided use it (callers like fetchUserWithToken will pass it), else try to obtain
+    setLoading(true);
+    try {
+      let token = passedToken || accessToken;
+      if (!token) token = await tryRefreshAccessToken();
+      if (!token) throw new Error("Not authenticated");
+
+      const { data } = await axios.get(`${job_service}/api/job/all-compaines`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setCompanies(data.companies || data || []);
+    } catch (error: any) {
+      // provide richer diagnostics for browser network/CORS/auth issues
+      if (error?.response) {
+        console.error("failed to fetch companies - response:", { status: error.response.status, data: error.response.data });
+        toast.error(`Failed to fetch companies: ${error.response.status} ${error.response.data?.message || ''}`);
+      } else if (error?.request) {
+        console.error("failed to fetch companies - no response received, request:", error.request);
+        toast.error("Network Error while fetching companies (no response). Check job service and CORS settings.");
+        // try a plain fetch to surface CORS errors with a clearer message
+        try {
+          if (typeof window !== 'undefined') {
+            const ping = await fetch(`${job_service}/api/job/all-compaines`, { method: 'OPTIONS' });
+            console.log('OPTIONS ping result', ping.status, await ping.text().catch(() => null));
+          }
+        } catch (ferr) {
+          console.error('fetch fallback failed', ferr);
+        }
+      } else {
+        console.error("failed to fetch companies", error);
+        toast.error(error?.message || "Failed to fetch companies");
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function createCompany(formData: FormData) {
+    if (!user) return;
+    setLoading(true);
+    try {
+      let token = accessToken;
+      if (!token) token = await tryRefreshAccessToken();
+      if (!token) throw new Error("Not authenticated");
+
+      const { data } = await axios.post(`${job_service}/api/job/create-company`, formData, {
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "multipart/form-data" },
+      });
+      toast.success(data.message || "Company created");
+      // optimistic: append
+      setCompanies((prev) => [...(prev || []), data.newCompany || data.company || {}]);
+    } catch (error: any) {
+      console.log("Axios Error:", error);
+
+      if (error.response) {
+        console.log("Status:", error.response.status);
+        console.log("Data:", error.response.data);
+      }
+
+      if (error.request) {
+        console.log("Request:", error.request);
+      }
+
+      console.log("Message:", error.message);
+    }
+    finally {
+      setLoading(false);
+    }
+  }
+
+  async function deleteCompany(companyId: number) {
+    if (!user) return;
+    setLoading(true);
+    try {
+      let token = accessToken;
+      if (!token) token = await tryRefreshAccessToken();
+      if (!token) throw new Error("Not authenticated");
+
+      const { data } = await axios.delete(`${job_service}/api/job/delete-company/${companyId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      toast.success(data.message || "Company deleted");
+      setCompanies((prev) => (prev || []).filter((c: any) => c.company_id !== companyId));
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || "Failed to delete company");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function deleteSkill(skillName: string) {
+    if (!user) return;
+    setLoading(true);
+    try {
+      let token = accessToken;
+      if (!token) token = await tryRefreshAccessToken();
+      if (!token) throw new Error("Not authenticated");
+
+      const { data } = await axios.delete(`${user_service}/api/user/skill/delete`, {
+        headers: { Authorization: `Bearer ${token}` },
+        data: { skillName },
+      });
+
+      toast.success(data.message || "Skill removed");
+      // optimistic update: remove skill from user.skills
+      setUser((prev) => prev ? ({ ...(prev as any), skills: (prev.skills || []).filter((s: string) => s !== skillName) }) : prev);
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || "Failed to delete skill");
+    } finally {
+      setLoading(false);
+    }
+  }
   useEffect(() => {
     // on mount try refresh to obtain access token and fetch user
     (async () => {
       const token = await tryRefreshAccessToken();
       if (token) {
         await fetchUserWithToken(token);
+        // if current user is recruiter, fetch their companies
+        if ((user as any)?.role === "recruiter") await fetchCompanies();
       } else {
         setLoading(false);
         setIsAuth(false);
@@ -140,7 +286,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   return (
     <AppContext.Provider
-      value={{ user, loading, btnLoading, isAuth, accessToken, setUser, setLoading, setIsAuth, setAccessToken, logOutUser, updateProfilePic, updateResume, updateProfile }}
+      value={{ user, loading, btnLoading, isAuth, accessToken, companies, setUser, setLoading, setIsAuth, setAccessToken, logOutUser, updateProfilePic, updateResume, updateProfile, addSkill, deleteSkill, fetchCompanies, createCompany, deleteCompany }}
     >
       {children}
       <Toaster />
