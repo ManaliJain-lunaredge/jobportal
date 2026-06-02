@@ -6,6 +6,12 @@ import { connectKafka } from "./producer.js";
 
 const app = express();
 
+// debug middleware: log request origin, method, path and cookie header to help diagnose CORS/cookie issues
+app.use((req, res, next) => {
+	console.log(`Incoming request: ${req.method} ${req.path} - Origin: ${req.headers.origin} - Cookie: ${req.headers.cookie}`);
+	next();
+});
+
 // Allow requests from the frontend during development. Set FRONTEND_URL in .env for production.
 const frontendOrigin = process.env.FRONTEND_URL || process.env.Frontend_Url || "http://localhost:3000";
 // allow Authorization header for bearer token requests coming from the browser (preflight)

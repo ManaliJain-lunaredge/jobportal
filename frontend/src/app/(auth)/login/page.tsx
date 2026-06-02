@@ -22,14 +22,26 @@ const LoginPage = () => {
         e.preventDefault();
         setBtnLoading(true)
 
-        if (!email || !password) {
+        // Read values from the form (handles browser autofill which may not trigger React onChange)
+        const form = e.currentTarget as HTMLFormElement
+        const formData = new FormData(form)
+        const emailVal = (formData.get('email') as string) || ''
+        const passwordVal = (formData.get('password') as string) || ''
+
+        // keep local state in sync for UI
+        setEmail(emailVal)
+        setPassword(passwordVal)
+
+        if (!emailVal || !passwordVal) {
             toast.error("Please enter email and password")
             setBtnLoading(false)
             return
         }
 
         try {
-            const { data } = await axios.post(`${auth_service}/api/auth/login`, { email, password }, { withCredentials: true });
+            // debug: log masked values (avoid logging full password in shared logs)
+            console.log('Login attempt', { email: emailVal, passwordMask: passwordVal ? '*'.repeat(4) : '' });
+            const { data } = await axios.post(`${auth_service}/api/auth/login`, { email: emailVal, password: passwordVal }, { withCredentials: true });
             toast.success(data.message)
             // store access token in memory; refresh token is set as HttpOnly cookie by server
             setAccessToken && setAccessToken(data.accessToken)
@@ -37,6 +49,15 @@ const LoginPage = () => {
             setIsAuth(true)
         }
         catch (error: any) {
+            console.error('Login error details:', {
+                message: error?.message,
+                response: error?.response && {
+                    status: error.response.status,
+                    headers: error.response.headers,
+                    data: error.response.data,
+                },
+                request: error?.request,
+            });
             const msg = error?.response?.data?.message || error?.message || "Failed to sign in";
             toast.error(msg);
             setIsAuth(false);
@@ -57,12 +78,12 @@ const LoginPage = () => {
                     <form onSubmit={submitHandler} className='space-y-5'>
                         <div className='space-y-2'>
                             <Label htmlFor="email" className='text-sm font-medium'>Email Address</Label>
-                            <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@company.com" />
+                            <Input id="email" name="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@company.com" />
                         </div>
 
                         <div className='space-y-2'>
                             <Label htmlFor="password" className='text-sm font-medium'>Password</Label>
-                            <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Your password" />
+                            <Input id="password" name="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Your password" />
                             <div className='text-right'>
                                 <Link href="/forgot-password" className='text-sm text-blue-600 hover:underline'>Forgot password?</Link>
                             </div>

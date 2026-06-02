@@ -53,30 +53,30 @@ font-size: 14px;
 line-height: 1.6;
 }
 .button-wrapper {
-margin: 30px 0;
-text-align: center;
+	margin: 30px 0;
+	text-align: center;
 }
+/* keep styles but many email clients strip head styles; main button uses inline styles below */
 .button {
-display: inline-block;
-padding: 14px 40px;
-background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-color: #ffffff;
-text-decoration: none;
-border-radius: 6px;
-font-weight: 600;
-font-size: 16px;
-box-shadow: 0 4px 6px rgba(102, 126, 234, 0.4);
+	display: inline-block;
+	padding: 14px 40px;
+	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+	color: #ffffff;
+	text-decoration: none;
+	border-radius: 6px;
+	font-weight: 600;
+	font-size: 16px;
+	box-shadow: 0 4px 6px rgba(102, 126, 234, 0.4);
 }
 .link-box {
-margin: 0 0 20px;
-padding: 15px;
-background-color: #f8f9fa;
-border-left: 4px solid #667eea;
-color: #667eea;
-font-size: 14px;
-
-word-break: break-all;
-border-radius: 4px;
+	margin: 0 0 20px;
+	padding: 15px;
+	background-color: #eef2ff; /* softer blue background to ensure visibility */
+	border-left: 4px solid #4f46e5;
+	color: #1e3a8a;
+	font-size: 14px;
+	word-break: break-all;
+	border-radius: 4px;
 }
 .warning {
 margin: 20px 0;
@@ -119,10 +119,16 @@ margin: 0;
 We received a request to reset your password. Click the
 button below to create a new password:
 </p>
-<!-- Button -->
-<div class="button-wrapper">
-<a href="${resetLink}" class="button">Reset Password</a>
-</div>
+<!-- Button (use table + inline styles for better email client support) -->
+<table role="presentation" width="100%" style="margin:30px 0;" cellspacing="0" cellpadding="0">
+	<tr>
+		<td align="center">
+			<a href="${resetLink}" style="display:inline-block;padding:14px 40px;background:#4f46e5;color:#ffffff;text-decoration:none;border-radius:6px;font-weight:600;font-size:16px;box-shadow:0 4px 6px rgba(79,70,229,0.3);">
+				Reset Password
+			</a>
+		</td>
+	</tr>
+</table>
 <p class="text-muted">
 Or copy and paste this link into your browser:
 </p>

@@ -3,14 +3,17 @@ import axios from "axios"
 import toast, { Toaster } from "react-hot-toast"
 import { AppContextType, AppProviderProps, User } from "@/type"
 import React, { createContext, useContext, useEffect, useState } from "react"
-export const utils_service = "http://localhost:5001"
+import { useRouter } from 'next/navigation'
+// Use same-origin relative paths so Next.js dev rewrites can proxy requests to backend services.
+export const utils_service = ""
 
 export const AppContext = createContext<AppContextType | undefined>(undefined);
-export const auth_service = "http://localhost:5000"
-export const user_service = "http://localhost:5002"
-export const job_service = "http://localhost:5003"
+export const auth_service = ""
+export const user_service = ""
+export const job_service = ""
 
 export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
+  const router = useRouter()
   const [user, setUser] = useState<User | null>(null);
   const [isAuth, setIsAuth] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
@@ -106,6 +109,13 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     setIsAuth(false);
     setLoading(false);
     toast.success("Logged out successfully");
+    // redirect to login after logout
+    try {
+      router.push('/login')
+    } catch (e) {
+      // fallback
+      window.location.href = '/login'
+    }
   }
 
   async function updateProfile(payload: { name?: string; email?: string; phone_number?: string | number; bio?: string }) {
